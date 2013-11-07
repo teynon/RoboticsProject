@@ -50,6 +50,20 @@ int motorSpeed = 45;
 
 const int lightThreshold = 40;
 
+int angle = 0;
+int angleROM = 90;
+int min = 1300;
+int max = 3400;
+int conversion = (max - min) / angleROM;
+int maxPower = 40;
+int minPower = 25;
+int minPowerThreshold = 2;
+
+// Prototype function so it can be called from other methods defined before this one is defined.
+void checkArm();
+void checkState();
+void lookAtAngle(int angle);
+
 lineState lState;
 // ------------------------------------------------
 // END GLOBALS
@@ -111,27 +125,37 @@ void calibrateSonar()
 	// Move the sonar until it hits one of the limit switches.
 	while(SensorValue(sonarLimits) == 0)
 	{
+		checkArm();
 		motor[sonarDrive] = 30;
 		wait1Msec(5);
 	}
 
 	motor[sonarDrive] = -30;	// Move in the other direction.
-	wait10Msec(15);						// Let it get off the sensor.
+	wait10Msec(30);						// Let it get off the sensor.
 	motor[sonarDrive] = 0;		// Stop the motor.
 
 	// Now we are at the starting position. We need to move to the other side
 	//  and record a time.
-	while(SensorValue(sonarLimits))
+	while(SensorValue(sonarLimits) == 0)
 	{
+		checkArm();
 		motor[sonarDrive] = -30;		// Move the motor until it hits the opposite limit switch.
 		wait1Msec(5);
 		counter = counter + 5;		// Increment the counter.
 	}
 
+	while (SensorValue(sonarLimits)) {
+		checkArm();
+		motor[sonarDrive] = 20;	// Move in the other direction.
+		wait1Msec(5);						// Let it get off the sensor.
+	}
+	
 	motor[sonarDrive] = 0;
 
-	degreesPerSecond = sonarRangeOfMotion / counter;
+	degreesPerSecond = (sonarRangeOfMotion * 100);
+	degreesPerSecond = degreesPerSecond / counter;
 	currentAngle = 0;
+	lookAtAngle(45);
 }
 
 
@@ -141,11 +165,12 @@ void lookAtAngle(int angle)
 	int timeToMove = 0;
 
 	// Get direction to move
-	if (angle > currentAngle) direction *= -1;
+	if (angle < currentAngle) direction *= -1;
 	timeToMove = abs(angle - currentAngle) / degreesPerSecond;
 
 	// Turn for X Seconds
 	while (SensorValue(sonarLimits) == 0 && timeToMove > 0) {
+		checkArm();
 		motor[sonarDrive] = direction;
 		wait1Msec(5);
 	}
@@ -166,6 +191,8 @@ void lookForward()
 // -------------------------------------------------
 
 void checkLines() {
+	checkState();
+
 	int lowest, highest;
 
 	// May have to update to allow multiple markers to be dark previously.
@@ -212,14 +239,7 @@ void checkLines() {
 	}
 }
 
-// -------------------------------------------------
-// END LINE TRACKING
-// =================================================
-
-
-
-task main()
-{
+void lineTracker() {
 	while (SensorValue(rearRightBumper) == 0 && SensorValue(rearLeftBumper) == 0) {
 		checkLines();
 
@@ -279,34 +299,71 @@ task main()
 
 		move_forwards(10);
 	}
+}
 
-	/*while(true)
-	{
-		while(SensorValue(sonarLimits) == 0)
-		{
-			motor[sonarDrive] = 30;
-			wait1Msec(5);
-		}
+// -------------------------------------------------
+// END LINE TRACKING
+// =================================================
 
-		while(SensorValue(sonarLimits) == 1)
-		{
-			motor[sonarDrive] = -30;
-			wait1Msec(1);
-		}
+// =================================================
+// Control Arm
+// -------------------------------------------------
 
-		//
+void checkArm() {
+	int degrees = SensorValue(armAngle);
+	degrees = (degrees - min) / conversion;
+	if (degrees < angle) {
+		// Move motor up.
+		if (degrees + minPowerThreshold < angle)
+			motor[armDrive] = maxPower;
+		else motor[armDrive] = minPower;
+	}
+	else if (degrees > angle) {
+		// Move motor down.
+		motor[armDrive] = -minPower;
+	}
+	else {
+		// Turn motor off
+		motor[armDrive] = 0;
+	}
+}
 
-		while(SensorValue(sonarLimits) == 0)
-		{
-			motor[sonarDrive] = -30;
-			wait1Msec(1);
-		}
+void setArm(int degrees) {
+	angle = degrees;
+	checkArm();
+}
 
-		while(SensorValue(sonarLimits) == 1)
-		{
-			motor[sonarDrive] = 30;
-			wait1Msec(1);
-		}
-	}*/
+// -------------------------------------------------
+// END CONTROL ARM
+// =================================================
+
+
+
+// =================================================
+// STATE MANAGER
+// -------------------------------------------------
+
+void checkState() {
+	// Check arm state.
+	checkArm();
+}
+
+// -------------------------------------------------
+// END STATE MANAGER
+// =================================================
+
+task main()
+{
+	setArm(25);
+	wait10Msec(5);
+	//calibrateSonar();
+	//lookAtAngle(45);
+
+	while (true) {
+		lineTracker();
+
+		// Check ultrasonic distance.
+
+	}
 
 }
