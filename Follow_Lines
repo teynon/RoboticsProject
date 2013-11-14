@@ -4,11 +4,10 @@
 #pragma config(Sensor, in8,    leftLine,       sensorLineFollower)
 #pragma config(Sensor, dgtl1,  rearRightBumper, sensorTouch)
 #pragma config(Sensor, dgtl2,  rearLeftBumper, sensorTouch)
-#pragma config(Sensor, dgtl3,  sonarLimits,    sensorTouch)
-#pragma config(Sensor, dgtl4,  light,          sensorLEDtoVCC)
+#pragma config(Sensor, dgtl3,  armLimit,       sensorTouch)
 #pragma config(Sensor, dgtl11, sonar,          sensorSONAR_cm)
 #pragma config(Motor,  port1,           leftDrive,     tmotorVex393, openLoop)
-#pragma config(Motor,  port2,           sonarDrive,    tmotorVex393, openLoop)
+#pragma config(Motor,  port2,           sonarLook,     tmotorServoStandard, openLoop)
 #pragma config(Motor,  port6,           clawDrive,     tmotorVex393, openLoop)
 #pragma config(Motor,  port7,           armDrive,      tmotorVex393, openLoop)
 #pragma config(Motor,  port10,          rightDrive,    tmotorVex393, openLoop)
@@ -35,6 +34,11 @@ typedef struct {
 	lineMarker lastMarker;
 } lineState;
 
+typedef struct {
+	int limit;
+	int speed;
+} speedThreshold;
+
 // ------------------------------------------------
 // END TYPEDEF
 // ================================================
@@ -46,7 +50,18 @@ typedef struct {
 const int sonarRangeOfMotion = 100;
 int degreesPerSecond = 0;
 int currentAngle = 0;
-int motorSpeed = 45;
+
+// Drive Speeds
+int motorSpeed = 100;
+int minMotorSpeed = 40;
+
+speedThreshold thresholdLimits[10];
+thresholdLimits[0].limit = 300;
+thresholdLimits[0].speed = motorSpeed;
+thresholdLimits[1].limit = 200;
+thresholdLimits[1].speed = motorSpeed / 2;
+thresholdLimits[2].limit = 100;
+thresholdLimits[2].speed = minMotorSpeed;
 
 const int lightThreshold = 40;
 
@@ -58,6 +73,8 @@ int conversion = (max - min) / angleROM;
 int maxPower = 40;
 int minPower = 25;
 int minPowerThreshold = 2;
+int sonarOffset = -10;
+int frontDistance = 0;
 
 // Prototype function so it can be called from other methods defined before this one is defined.
 void checkArm();
@@ -74,6 +91,8 @@ lineState lState;
 // -------------------------------------------------
 
 void move_forwards(int ms){
+	int speed = motorSpeed;
+	
 		motor[rightDrive] = motorSpeed; // Motor on port2 is run at half (63) power forward
 		motor[leftDrive]  = motorSpeed;	// Motor on port3 is run at half (63) power forward
 		wait1Msec(ms);
@@ -116,72 +135,22 @@ void turn_right(int ms, int power) {
 // =================================================
 // SONAR
 // -------------------------------------------------
-void calibrateSonar()
-{
-	int counter = 0;
-
-	SensorValue[4] = true;
-
-	// Move the sonar until it hits one of the limit switches.
-	while(SensorValue(sonarLimits) == 0)
-	{
-		checkArm();
-		motor[sonarDrive] = 30;
-		wait1Msec(5);
-	}
-
-	motor[sonarDrive] = -30;	// Move in the other direction.
-	wait10Msec(30);						// Let it get off the sensor.
-	motor[sonarDrive] = 0;		// Stop the motor.
-
-	// Now we are at the starting position. We need to move to the other side
-	//  and record a time.
-	while(SensorValue(sonarLimits) == 0)
-	{
-		checkArm();
-		motor[sonarDrive] = -30;		// Move the motor until it hits the opposite limit switch.
-		wait1Msec(5);
-		counter = counter + 5;		// Increment the counter.
-	}
-
-	while (SensorValue(sonarLimits)) {
-		checkArm();
-		motor[sonarDrive] = 20;	// Move in the other direction.
-		wait1Msec(5);						// Let it get off the sensor.
-	}
-	
-	motor[sonarDrive] = 0;
-
-	degreesPerSecond = (sonarRangeOfMotion * 100);
-	degreesPerSecond = degreesPerSecond / counter;
-	currentAngle = 0;
-	lookAtAngle(45);
-}
-
 
 void lookAtAngle(int angle)
 {
-	int direction = 30;
-	int timeToMove = 0;
-
-	// Get direction to move
-	if (angle < currentAngle) direction *= -1;
-	timeToMove = abs(angle - currentAngle) / degreesPerSecond;
-
-	// Turn for X Seconds
-	while (SensorValue(sonarLimits) == 0 && timeToMove > 0) {
-		checkArm();
-		motor[sonarDrive] = direction;
-		wait1Msec(5);
-	}
-
-	motor[sonarDrive] = 0;
+	motor[sonarLook] = angle + sonarOffset;
+	wait1Msec(1);
 }
 
 void lookForward()
 {
-	lookAtAngle((int)(sonarRangeOfMotion / 2));
+	lookAtAngle((int)0);
 }
+
+int checkFrontDistance() {
+	
+}
+
 // -------------------------------------------------
 // END SONAR
 // =================================================
@@ -310,6 +279,14 @@ void lineTracker() {
 // -------------------------------------------------
 
 void checkArm() {
+	if (SensorValue(armLimit)) {
+		// Force motor up.
+		motor[armDrive] = maxPower;
+		wait10MSec(5);
+		
+		// Set armDrive to something higher.
+		armAngle = 10;
+	}
 	int degrees = SensorValue(armAngle);
 	degrees = (degrees - min) / conversion;
 	if (degrees < angle) {
@@ -356,8 +333,7 @@ task main()
 {
 	setArm(25);
 	wait10Msec(5);
-	//calibrateSonar();
-	//lookAtAngle(45);
+	lookForward();
 
 	while (true) {
 		lineTracker();
