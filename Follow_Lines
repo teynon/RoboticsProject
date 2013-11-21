@@ -6,7 +6,9 @@
 #pragma config(Sensor, dgtl1,  rearRightBumper, sensorTouch)
 #pragma config(Sensor, dgtl2,  rearLeftBumper, sensorTouch)
 #pragma config(Sensor, dgtl3,  armLimit,       sensorTouch)
-#pragma config(Sensor, dgtl11, sonar,          sensorSONAR_cm)
+#pragma config(Sensor, dgtl7,  sonarRight,     sensorSONAR_inch)
+#pragma config(Sensor, dgtl9,  sonarLeft,      sensorSONAR_inch)
+#pragma config(Sensor, dgtl11, sonarFront,     sensorSONAR_inch)
 #pragma config(Sensor, I2C_1,  debugleftI2C,   sensorQuadEncoderOnI2CPort,    , AutoAssign)
 #pragma config(Sensor, I2C_2,  debugRightI2C,  sensorQuadEncoderOnI2CPort,    , AutoAssign)
 #pragma config(Motor,  port1,           leftDrive,     tmotorVex393, openLoop, reversed, encoder, encoderPort, I2C_1, 1000)
@@ -48,6 +50,18 @@ typedef struct {
 	int speed;
 } speedThreshold;
 
+typedef struct {
+	int x;
+	int y;
+	blockState state;
+} cell;
+
+typedef struct {
+	cell position;
+	int direction;
+	cell goal;
+} robot;
+
 // ------------------------------------------------
 // END TYPEDEF
 // ================================================
@@ -61,17 +75,18 @@ int degreesPerSecond = 0;
 int currentAngle = 0;
 int angleConversion = 5;
 
+robot Me;
+
 // Drive Speeds
 int motorSpeed = 100;
 int minMotorSpeed = 40;
-int angle90 = 435;
+int angle90 = 510;
 
 speedThreshold thresholdLimits[10];
-blockState grid[10][10];
 
-// Where is the coke can?
-int goalX = 5;
-int goalY = 5;
+const int gridWidth = 50;
+const int gridHeight = 50;
+blockState grid[gridWidth][gridHeight];
 
 //thresholdLimits[0].limit = 300;
 //thresholdLimits[0].speed = motorSpeed;
@@ -133,12 +148,12 @@ void turn_left(int ms){
 
 void turn_left(int ms, int power) {
 		motor[rightDrive] = -power; // Motor on port2 is run at half (63) power forward
-		motor[leftDrive]  = motorSpeed;	// Motor on port3 is run at half (63) power forward
+		motor[leftDrive]  = power;	// Motor on port3 is run at half (63) power forward
 		wait1Msec(ms);
 }
 
 void turn_right(int ms, int power) {
-		motor[rightDrive] = motorSpeed; // Motor on port2 is run at half (63) power forward
+		motor[rightDrive] = power; // Motor on port2 is run at half (63) power forward
 		motor[leftDrive]  = -power;	// Motor on port3 is run at half (63) power forward
 		wait1Msec(ms);
 }
@@ -150,11 +165,11 @@ void turn_left_angle(int angle) {
 	int amount = angle;
 	
 	while (nMotorEncoder[leftDrive] > -amount && nMotorEncoder[rightDrive] < amount) {
-		turn_left(10, motorSpeed);
+		turn_left(1, motorSpeed / 2);
 	}
 	
 	// Reverse power shortly.
-	turn_right(10, motorSpeed);
+	turn_right(15, motorSpeed);
 	
 	motors_off();
 	
@@ -167,11 +182,11 @@ void turn_right_angle(int angle) {
 	int amount = angle;
 	
 	while (nMotorEncoder[leftDrive] < amount && nMotorEncoder[rightDrive] > -amount) {
-		turn_right(1, motorSpeed);
+		turn_right(1, motorSpeed / 2);
 	}
 	
 	// Reverse power shortly.
-	turn_left(1, motorSpeed);
+	turn_left(15, motorSpeed);
 	
 	motors_off();
 }
@@ -389,6 +404,189 @@ void checkState() {
 // GRID
 // -------------------------------------------------
 
+void setBlockState(int x, int y, blockState state) {
+	if (x < gridWidth && y < gridHeight) {
+		grid[x][y] = state;
+	}
+}
+
+void setBlockState_range(int xIncrement, int yIncrement, int startX, int startY, int distanceClear) {
+	for (int x = 0; x < 10; x++) {
+		startX += xIncrement;
+		startY += yIncrement;
+		
+		if (x < distanceClear) {
+			setBlockState(startX, startY, clear);
+		}
+		else if (x == distanceClear) {
+			setBlockState(startX, startY, blocked);
+		}
+		else {
+			setBlockState(startX, startY, unknown);
+		}
+	}
+}
+
+void sensorMapCheck(int sensorValue, int cangle) {
+	// Update 10 blocks in front.
+	// If 0, modify all x values to the right.
+	if (cangle == 0) {
+		setBlockState_range(1, 0, Me.position.x, Me.y, frontClearance);
+	}
+	else if (cangle == 90) {
+		setBlockState_range(0, 1, Me.position.x, Me.y, frontClearance);
+	}
+	else if (cangle == 180) {
+		setBlockState_range(-1, 0, Me.position.x, Me.y, frontClearance);
+	}
+	else if (cangle == 270) {
+		setBlockState_range(0, -1, Me.position.x, Me.y, frontClearance);
+	}
+}
+
+void checkMap() {
+	sensorMapCheck(SensorValue(sonarFront), angle);
+	sensorMapCheck(SensorValue(sonarLeft), angle + 90 % 360);
+	sensorMapCheck(SensorValue(sonarRight), abs(angle - 90) % 360);
+}
+
+int blockClearance(int distance) {
+	if (distance <= 0) return 10;
+	int result = distance / 12;
+	if (distance > 10) return 10;
+	return result;
+}
+
+// -------------------------------------------------
+// END GRID
+// =================================================
+
+// =================================================
+// PATH PLANNING
+// -------------------------------------------------
+int distanceToGoal(int x, int y) {
+	return distance(x, y, Me.goal.x, Me.goal.y);
+}
+
+int distance(int x, int y, int x2, int y2) {
+	return sqrt(x2  x + y2- y);
+}
+
+void findRoute() {
+	int closedNodeIndex = 0;
+	int openNodeIndex = 0;
+	int openNodeCount = 1;
+	cell current;
+	
+	cell closedNode[gridWidth * gridHeight];
+	cell openNode[gridWidth * gridHeight];
+	cell cameFrom[gridWidth][gridHeight];
+	
+	openNode[openNodeIndex++] = Me.position;
+	int gscores[gridWidth][gridHeight];
+	gscores[Me.position.x][Me.position.y] = 0;
+	
+	int fscores[gridWidth][gridHeight];
+	fscores[Me.position.x][Me.position.y] = distanceToGoal(Me.position.x, Me.position.y);
+	
+	while (openNodeCount > 0) {
+		for (int x = 0; x < openNodeIndex) {
+			// Get current node with lowest score.
+			if (fscores[openNode[x].x][openNode[x].y] != NULL && 
+				fscores[openNode[x].x][openNode[x].y] < fscores[current.x][current.y]) {
+				current.x = openNode[x].x;
+				current.y = openNode[x].y;
+			}
+			
+			if (current.x == Me.goal.x && current.y == Me.goal.y) {
+				return navigatedNodes;
+			}
+			
+			// Remove current from open nodes.
+			for (int i = 0; i < openNodeIndex; i++) {
+				if (openNode[i] != NULL && openNode[i].x == current.x && openNode[i].y == current.y) {
+					openNode[i] = NULL;
+				}
+			}
+			// Add to closed nodes.
+			closedNode[closedNodeIndex++] = current;
+			
+			cell neighbor;
+			int ngscore = 0;
+			int nfscore = 0;
+			
+			for (int neighbors = 0; neighbors < 4; neighbors++) {
+				if (neighbors == 0) {
+					neighbor.x = current.x + 1;
+					neighbor.y = current.y;
+				}
+				else if (neighbors == 1) {
+					neighbor.x = current.x;
+					neighbor.y = current.y + 1;
+				}
+				else if (neighbors == 2) {
+					neighbor.x = current.x - 1;
+					neighbor.y = current.y;
+				}
+				else if (neighbors == 3) {
+					neighbor.x = current.x;
+					neighbor.y = current.y - 1;
+				}
+				
+				// Make sure neighbor is in range.
+				if (neighbor.x < 0 || neighbor.x >= gridWidth || neighbor.y < 0 || neighbor.y >= gridHeight) {
+					continue;
+				}
+				
+				ngscore = gscores[current.x][current.y] + distance(current.x, current.y, neighbor.x, neighbor.y);
+				nfscore = ngscore + distanceToGoal(neighbor.x, neighbor.y);
+				
+				// Check if neighbor is in closed set.
+				bool closedSet = false;
+				bool openSet = false;
+				int limit = closedNodeIndex;
+				if (openNodeIndex > limit) limit = openNodeIndex;
+				
+				for (int n = 0; n < limit; n++) {
+					if (closedNode[n] != NULL) {
+					 	if (closedNode[n].x == neighbor.x && closedNode[n].y == neighbor.y) {
+							closedSet = true;
+						}
+					}
+					if (openNode[n] != NULL) {
+						if (openNode[n].x == neighbor.x && openNode[n].y == neighbor.y) {
+							openSet = true;
+						}
+					}
+					
+				}
+				
+				if (closedSet && nfscore >= fscores[neighbor.x][neighbor.y]) {
+					continue;
+				}
+				
+				if (!openSet || (fscores[neighbor.x][neighbor.y] != NULL && nfscore < fscores[neighbor.x][neighbor.y])) {
+					cameFrom[neighbor.x][neighbor.y] = current;
+					gscores[neighbor.x][neighbor.y] = ngscore;
+					fscores[neighbor.x][neighbor.y] = nfscore;
+					
+					if (!openSet) {
+						openNode[openNodeIndex++] = neighbor;
+					}
+				}
+			}
+			
+		}
+	}
+	
+	
+}
+
+// -------------------------------------------------
+// END PATH PLANNING
+// =================================================
+
+
 void initGrid() {
 	for (int x = 0; x < 10; x++) {
 		for (int y = 0; y < 10; y++) {
@@ -399,7 +597,22 @@ void initGrid() {
 
 task main()
 {
-	turn_right_angle(angle90);
+	// Set the current goal.
+	cell goal;
+	goal.x = 5;
+	goal.y = 5;
+	
+	// Initialize Myself
+	Me.position.x = 0;
+	Me.position.y = 0;
+	Me.direction = 0;
+	Me.goal = goal;
+	
+	// Initialize our current map.
+	checkMap();
+	
+	// Determine a route.
+	findRoute();
 	
 	//turn_left_angle(90);
 	/*
