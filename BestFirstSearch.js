@@ -18,6 +18,10 @@ for (var x = 0; x < 10; x++) {
     }
 }
 
+open[3][5] = false;
+open[2][5] = false;
+open[2][4] = false;
+open[2][3] = false;
 open[8][6] = false;
 open[8][7] = false;
 open[8][5] = false;
@@ -32,7 +36,7 @@ open[4][5] = false;
 open[4][6] = false;
 open[5][4] = false;
 open[6][4] = false;
-//open[7][4] = false;
+open[7][4] = false;
 open[4][7] = false;
 open[4][8] = false;
 open[4][9] = false;
@@ -83,7 +87,6 @@ path[pathIndex++] = current;
 
 while (openCells > 0) {
     if (current == undefined) break;
-    console.log(current);
     open[current.x][current.y] = false;
     
     if (current.x == goal.x && current.y == goal.y) {
@@ -144,25 +147,18 @@ while (openCells > 0) {
 
 
 if (pathFound) {
-    console.log(path);
     // Clean up path.
     // Work from the goal back to the start position, see if we can shortcut any neighboring nodes.
     var pathCleanedUp = true;
+    
     while (pathCleanedUp) {
         pathCleanedUp = false;
-        console.log(path);
         for (var x = pathIndex - 1; x > 0; x--) {
             if (pathCleanedUp) break;
-            console.log("----------------------------------------------");
-            console.log("Checking path[" + x + "]");
-            console.log(path[x]);
             for (var i = 0; i < pathIndex && i < x - 1; i++) {
                 if (pathCleanedUp) break;
-                console.log("Comparing Neighbor path[" + i + "]");
-                console.log(path[i]);
                 // Node comes before x and is a neighbor of x
                 if (genericDistance(path[i].x, path[i].y, path[x].x, path[x].y) == 1) {
-                    console.log(i + " is close to " + x);
                     pathCleanedUp = true;
                     // Trim the inbetween.
                     var newPath = [];
@@ -175,6 +171,99 @@ if (pathFound) {
                     }
                     path = newPath;
                     pathIndex = newPathIndex;
+                }
+                else if ((path[i].x != path[x].x && path[i].y == path[x].y) || (path[i].x == path[x].x && path[i].y != path[x].y)) {
+                    console.log("Connection:");
+                    console.log(path[i]);
+                    console.log(path[x]);
+                    var connected = true;
+                    // If nodes are within line of site and no used nodes are in between.
+                    if (path[i].x == path[x].x) {
+                        if (path[x].x == 1 && path[x].y == 2) console.log("X shared");
+                        // Walk the Y value over until the values are the same or the node is closed.
+                        if (path[i].y < path[x].y) {
+                            for (var ty = path[i].y + 1; ty < path[x].y; ty++) {
+                                console.log("x: " + path[i].x + " y: " + ty);
+                                if (!open[path[i].x][ty]) {
+                                    connected = false;
+                                    break;
+                                }
+                            }
+                        }
+                        else {
+                            for (var ty = path[i].y - 1; ty > path[x].y; ty--) {
+                                if (!open[path[i].x][ty]) {
+                                    connected = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    else if (path[i].y == path[i].y) {
+                        // Walk the X value over until the values are the same or the node is closed.
+                        if (path[i].x < path[x].x) {
+                            for (var ty = path[i].x + 1; ty < path[x].x; ty++) {
+                                if (!open[ty][path[i].y]) {
+                                    connected = false;
+                                    break;
+                                }
+                            }
+                        }
+                        else {
+                            for (var ty = path[i].x - 1; ty > path[x].x; ty--) {
+                                if (!open[ty][path[i].y]) {
+                                    connected = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (connected) {
+                        console.log("Connected.");
+                        var dist = 0;
+                        
+                        var newPath = [];
+                        for (var z = 0; z <= i; z++) {
+                            newPath[z] = { x : path[z].x, y : path[z].y };
+                        }
+                        
+                        // Connect the two paths cutting out the inbetween steps.
+                        if (path[i].x < path[x].x) {
+                            // Increase x until we hit path[x].x.
+                            for (var ix = i + 1; path[i].x + dist != path[x].x; ix++) {
+                                dist++;
+                                newPath[ix] = { x : path[i].x + dist, y : path[i].y };
+                            }
+                        }
+                        else if (path[i].x > path[x].x) {
+                            // Increase x until we hit path[x].x.
+                            for (var ix = i + 1; path[i].x + dist != path[x].x; ix++) {
+                                dist--;
+                                newPath[ix] = { x : path[i].x + dist, y : path[i].y };
+                            }
+                        }
+                        else if (path[i].y < path[x].y) {
+                            // Increase x until we hit path[x].x.
+                            for (var ix = i + 1; path[i].y + dist != path[x].y; ix++) {
+                                dist++;
+                                newPath[ix] = { x : path[i].x, y : path[i].y + dist };
+                            }                            
+                        }
+                        else if (path[i].y > path[x].y) {
+                            // Increase x until we hit path[x].x.
+                            for (var ix = i + 1; path[i].y + dist != path[x].y; ix++) {
+                                dist--;
+                                newPath[ix] = { x : path[i].x, y : path[i].y + dist };
+                            }
+                        }
+                        
+                        for (var iz = x; iz < pathIndex; iz++) {
+                            newPath[ix++] = path[iz];
+                        }
+                        path = newPath;
+                        pathIndex = ix;
+                    }
                 }
             }
         }
