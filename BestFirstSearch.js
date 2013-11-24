@@ -22,6 +22,7 @@ open[3][5] = false;
 open[2][5] = false;
 open[2][4] = false;
 open[2][3] = false;
+open[8][8] = false;
 open[8][6] = false;
 open[8][7] = false;
 open[8][5] = false;
@@ -33,13 +34,17 @@ open[6][1] = false;
 open[6][2] = false;
 open[6][3] = false;
 open[4][5] = false;
-open[4][6] = false;
+//open[4][6] = false;
 open[5][4] = false;
 open[6][4] = false;
 open[7][4] = false;
 open[4][7] = false;
 open[4][8] = false;
 open[4][9] = false;
+open[7][8] = false;
+open[6][8] = false;
+//open[5][6] = false;
+open[6][6] = false;
 
 open[0][0] = false;
 openCells--;
@@ -145,7 +150,6 @@ while (openCells > 0) {
     path[pathIndex++] = current;
 }
 
-
 if (pathFound) {
     // Clean up path.
     // Work from the goal back to the start position, see if we can shortcut any neighboring nodes.
@@ -183,7 +187,7 @@ if (pathFound) {
                         // Walk the Y value over until the values are the same or the node is closed.
                         if (path[i].y < path[x].y) {
                             for (var ty = path[i].y + 1; ty < path[x].y; ty++) {
-                                console.log("x: " + path[i].x + " y: " + ty);
+                                console.log("x: " + path[i].x + " y: " + ty + " open: " + open[path[i].x][ty]);
                                 if (!open[path[i].x][ty]) {
                                     connected = false;
                                     break;
@@ -234,6 +238,7 @@ if (pathFound) {
                             for (var ix = i + 1; path[i].x + dist != path[x].x; ix++) {
                                 dist++;
                                 newPath[ix] = { x : path[i].x + dist, y : path[i].y };
+                                open[newPath[ix].x][newPath[ix].y] = false;
                             }
                         }
                         else if (path[i].x > path[x].x) {
@@ -241,6 +246,7 @@ if (pathFound) {
                             for (var ix = i + 1; path[i].x + dist != path[x].x; ix++) {
                                 dist--;
                                 newPath[ix] = { x : path[i].x + dist, y : path[i].y };
+                                open[newPath[ix].x][newPath[ix].y] = false;
                             }
                         }
                         else if (path[i].y < path[x].y) {
@@ -248,6 +254,7 @@ if (pathFound) {
                             for (var ix = i + 1; path[i].y + dist != path[x].y; ix++) {
                                 dist++;
                                 newPath[ix] = { x : path[i].x, y : path[i].y + dist };
+                                open[newPath[ix].x][newPath[ix].y] = false;
                             }                            
                         }
                         else if (path[i].y > path[x].y) {
@@ -255,13 +262,16 @@ if (pathFound) {
                             for (var ix = i + 1; path[i].y + dist != path[x].y; ix++) {
                                 dist--;
                                 newPath[ix] = { x : path[i].x, y : path[i].y + dist };
+                                open[newPath[ix].x][newPath[ix].y] = false;
                             }
                         }
                         
                         for (var iz = x; iz < pathIndex; iz++) {
                             newPath[ix++] = path[iz];
                         }
+                        pathCleanedUp = true;
                         path = newPath;
+                        console.log(path);
                         pathIndex = ix;
                     }
                 }
