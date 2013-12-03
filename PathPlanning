@@ -21,7 +21,7 @@
 // ===============================================
 // TYPEDEF
 // -----------------------------------------------
-
+/*
 typedef enum {
 	none,
 	left,
@@ -33,9 +33,9 @@ typedef enum {
 	unknown,
 	clear,
 	blocked
-} blockState;
+} blockState;*/
 
-typedef struct {
+/*typedef struct {
 	bool leftLineDark;
 	bool middleLineDark;
 	bool rightLineDark;
@@ -43,12 +43,12 @@ typedef struct {
 	int middleLineVal;
 	int rightLineVal;
 	lineMarker lastMarker;
-} lineState;
+} lineState;*/
 
-typedef struct {
+/*typedef struct {
 	int limit;
 	int speed;
-} speedThreshold;
+} speedThreshold;*/
 
 typedef struct {
 	int x;
@@ -69,8 +69,8 @@ typedef struct {
 // ================================================
 // GLOBALS
 // ------------------------------------------------
-const int gridWidth = 10;
-const int gridHeight = 10;
+const int gridWidth = 8;
+const int gridHeight = 8;
 
 // The robot's starting position.
 int startX = 0;
@@ -81,8 +81,8 @@ int currentX = 0;
 int currentY = 0;
 
 // The goal's position.
-int goalX = 9;
-int goalY = 5;
+int goalX = 5;
+int goalY = 0;
 
 int distancePerSquare = 100;
 int openCells = gridWidth * gridHeight;
@@ -104,7 +104,7 @@ int motorSpeed = 100;
 int minMotorSpeed = 40;
 int angle90 = 615;
 
-speedThreshold thresholdLimits[10];
+//speedThreshold thresholdLimits[10];
 
 //thresholdLimits[0].limit = 300;
 //thresholdLimits[0].speed = motorSpeed;
@@ -132,7 +132,7 @@ void checkState();
 void initOpen();
 void lookAtAngle(int angle);
 
-lineState lState;
+//lineState lState;
 // ------------------------------------------------
 // END GLOBALS
 // ================================================
@@ -281,7 +281,7 @@ int checkFrontDistance()
 // =================================================
 // LINE TRACKING
 // -------------------------------------------------
-
+/*
 void checkLines() 
 {
 	checkState();
@@ -405,6 +405,7 @@ void lineTracker()
 			  		// Turn right a bit.
 			    		turn_right(40);
 			  	}
+			}
 			else 
 			{
 				turn_left(40);
@@ -415,7 +416,7 @@ void lineTracker()
 		move_forwards(10);
 	}
 }
-
+*/
 // -------------------------------------------------
 // END LINE TRACKING
 // =================================================
@@ -423,6 +424,10 @@ void lineTracker()
 // =================================================
 // Control Arm
 // -------------------------------------------------
+
+void armOff() {
+	motor[armDrive] = 0;
+}
 
 void checkArm() 
 {
@@ -438,7 +443,6 @@ void checkArm()
 		angle = 10;
 	}
 	int degrees = SensorValue(armAngle);
-	degrees = (degrees - min) / conversion;
 	if (degrees < angle) {
 		// Move motor up.
 		if (degrees + minPowerThreshold < angle)
@@ -456,6 +460,11 @@ void checkArm()
 }
 
 void setArm(int degrees) {
+	angle = degrees; //(degrees * conversion)(degrees - min) / conversion;
+	checkArm();
+}
+
+void setArmLiteral(int degrees) {
 	angle = degrees;
 	checkArm();
 }
@@ -486,7 +495,7 @@ void checkState() {
 // -------------------------------------------------
 
 void setBlockState(int x, int y, bool state) {
-	if (x < gridWidth && y < gridHeight) {
+	if (x < gridWidth && y < gridHeight && x >= 0 && y >= 0) {
 		grid[y][x] = state;
 	}
 }
@@ -502,6 +511,7 @@ void setBlockState_range(int xIncrement, int yIncrement, int startX, int startY,
 		}
 		else if (x == distanceClear) {
 			setBlockState(startX, startY, false);
+			break;
 		}
 	}
 }
@@ -597,7 +607,7 @@ bool bestFirst_route() {
 	  	currentY = path[pathIndex - 1].y;
 	  	continue;
 	  }
-	  
+	  if (pathIndex >= gridWidth * gridHeight) return false;
 	  currentX = nodeX;
 	  currentY = nodeY;
 	  path[pathIndex].x = currentX;
@@ -656,6 +666,7 @@ task main()
 	
 	// Put the arm in observer position.
 	//setArm(29);
+	setArmLiteral(1800);
 	wait10Msec(5);
 	
 	// Set sonar to look straight ahead.
@@ -664,6 +675,7 @@ task main()
 	// Determine a route.
 	int cellDirection = 1;
 	while (Me.position.x != goalX || Me.position.y != goalY) {
+		// Maintain the position of the arm (prevent falling)
 		checkArm();
 	  if (bestFirst_route()) {
 			// Follow path. 
@@ -687,24 +699,26 @@ task main()
 						cellDirection = 3;
 						Me.position.y = Me.position.y - 1;
 					}
-					
+					//armOff();
 					while (Me.direction != cellDirection) {
+						checkArm();
 						// Turn to face cell.
-						if (Me.direction < cellDirection || Me.direction == 0 && cellDirection == 3) {
-							turn_left_angle(angle90);
-							Me.direction = Me.direction - 1;
-							if (Me.direction < 0) Me.direction = 3;
-						}
-						else {
+						if (Me.direction < cellDirection || (Me.direction - cellDirection > 2)) {
 							turn_right_angle(angle90);
 							Me.direction = Me.direction + 1;
 							if (Me.direction > 3) Me.direction = 0;
+						}
+						else {
+							turn_left_angle(angle90);
+							Me.direction = Me.direction - 1;
+							if (Me.direction < 0) Me.direction = 3;
 						}
 					}
 					checkArm();
 					
 					move_forwards_dist(600);
 					motors_off();
+					armOff();
 					checkMap();
 				}
 				else {
