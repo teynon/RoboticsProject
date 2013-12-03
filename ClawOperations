@@ -1,0 +1,15 @@
+// The motor and wait values may need adjusted so we don't burn up the motor.
+
+void openClaw()
+{
+	motor[clawDrive] = 30;	// Open the claw.
+	wait1Msec(1);			      // Let the claw continue opening.
+	motor[clawDrive] = 0;	  // Stop the claw from opening any more. 
+}
+
+void closeClaw()
+{
+	motor[clawDrive] = 30;  // Close the claw.
+	wait1MSec(1);			      // Let the claw continue closing.
+	motor[clawDrive] = 0;	  // Stop the claw from opening any more.
+}
