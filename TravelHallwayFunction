@@ -1,0 +1,53 @@
+// Call this function to have the robot travel down the hallway.
+void travelHallway()
+{
+	// We need to keep the robot in the middle of the hallway. To do that, we will use the three sonars on our robot.
+	// The front, left, and right sonars will be used.
+	// Front: To determine if we have reached the end of the hall or not.
+	// Left: To ensure we are the same distance away from the left wall as the right wall.
+	// Right: To ensure we are the same distance away from the right wall as the left wall.
+	// We will 60 for the normal speed.
+	// We will use 70 for the slightly higher speed.
+
+	int leftMotorSpeed;
+	int rightMotorSpeed;
+
+	// Set arm to be parallel with the ground.
+	setArm(25);
+
+	// Set the initial motor speeds;
+	leftMotorSpeed = 60;
+	rightMotorSpeed = 60;
+
+	// While the robot isn't to close to something in front of it.
+	while(SensorValue[sonarFront] > 20)
+	{
+		// If the sonar values are the same.
+		if(SensorValue[sonarLeft] == SonarValue[sonarRight])
+		{
+			// Set the motor speeds to the same value
+			leftMotorSpeed = 60;
+			rightMotorSpeed = 60;
+		}
+		// If the left sonar value is greater than the right sonar value, we are closer to the right wall.
+		else if(SensorValue[sonarLeft] > SensorValue[sonarRight])
+		{
+			// Set the left motor speed slightly higher. This should let the robot drift to the left.
+			leftMotorSpeed = 70;
+		}
+		// If the right sonar value is greater than the left sonar value, we are closer to the left wall.
+		else if(SensorValue[sonarRight] > SensorValue[sonarLeft])
+		{
+			// Set the right motor speed slightly higher. This should let the robot drift to the right.
+			rightMotorSpeed = 70;
+		}
+
+		// Move forward using the speed variables for each motor.
+		motor[leftDrive] = leftMotorSpeed;
+		motor[rightDrive] = rightMotorSpeed;
+	}
+
+	// Stop moving the robot
+	motor[leftDrive] = 0;
+	motor[rightDrive] = 0;
+}
