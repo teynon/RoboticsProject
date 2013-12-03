@@ -72,19 +72,25 @@ typedef struct {
 const int gridWidth = 10;
 const int gridHeight = 10;
 
+// The robot's starting position.
 int startX = 0;
 int startY = 0;
+
+// The robot's current position.
 int currentX = 0;
 int currentY = 0;
+
+// The goal's position.
 int goalX = 9;
 int goalY = 5;
+
 int distancePerSquare = 100;
 int openCells = gridWidth * gridHeight;
 
-bool grid[gridHeight][gridWidth];
-bool open[gridHeight][gridWidth];
-cell path[gridWidth * gridHeight];
-int pathIndex = 0;
+bool grid[gridHeight][gridWidth];	// 
+bool open[gridHeight][gridWidth];	// 
+cell path[gridWidth * gridHeight];	// The path the robot will take.
+int pathIndex = 0;			// The number of cells in the robots path.
 
 const int sonarRangeOfMotion = 100;
 int degreesPerSecond = 0;
@@ -136,12 +142,14 @@ lineState lState;
 // -------------------------------------------------
 
 
-void motors_off() {
+void motors_off() 
+{
 	motor[rightDrive] = 0;
 	motor[leftDrive] = 0;
 }
 
-void move_forwards(int ms) {
+void move_forwards(int ms) 
+{
 	int speed = motorSpeed;
 	
 	motor[rightDrive] = motorSpeed; // Motor on port2 is run at half (63) power forward
@@ -149,56 +157,63 @@ void move_forwards(int ms) {
 	wait1Msec(ms);
 }
 
-void move_forwards_dist(int amount) {
-  int speed = 50;
+void move_forwards_dist(int amount) 
+{
+	int speed = 50;
         
 	nMotorEncoder[leftDrive] = 0;
-  nMotorEncoder[rightDrive] = 0;
+  	nMotorEncoder[rightDrive] = 0;
   
-  while (nMotorEncoder[leftDrive] > -amount && nMotorEncoder[rightDrive] > -amount && nMotorEncoder[leftDrive] < amount && nMotorEncoder[rightDrive] < amount) {
-	  motor[leftDrive] = -speed; // Motor on port2 is run at half (63) power forward
-	  motor[rightDrive]  = -speed;        // Motor on port3 is run at half (63) power forward
-	  wait1Msec(1);
+  	while (nMotorEncoder[leftDrive] > -amount && nMotorEncoder[rightDrive] > -amount && nMotorEncoder[leftDrive] < amount && nMotorEncoder[rightDrive] < amount) 
+  	{
+		motor[leftDrive] = -speed; 	// Motor on port2 is run at half (63) power forward
+	  	motor[rightDrive]  = -speed;    // Motor on port3 is run at half (63) power forward
+	  	wait1Msec(1);
 	  
 		checkArm();
-  }
+  	}
   
-  motors_off();
+  	motors_off();
 }
 
-void move_backwards(int ms){
-		motor[rightDrive] = -motorSpeed; // Motor on port2 is run at half (63) power forward
-		motor[leftDrive]  = -motorSpeed;	// Motor on port3 is run at half (63) power forward
-		wait1Msec(ms);
+void move_backwards(int ms)
+{
+	motor[rightDrive] = -motorSpeed; 	// Motor on port2 is run at half (63) power forward
+	motor[leftDrive]  = -motorSpeed;	// Motor on port3 is run at half (63) power forward
+	wait1Msec(ms);
 }
 
-void turn_left(int ms){
-		motor[rightDrive] = -motorSpeed; // Motor on port2 is run at half (63) power forward
-		motor[leftDrive]  = motorSpeed;	// Motor on port3 is run at half (63) power forward
-		wait1Msec(ms);
+void turn_left(int ms)
+{
+	motor[rightDrive] = -motorSpeed;	// Motor on port2 is run at half (63) power forward
+	motor[leftDrive]  = motorSpeed;		// Motor on port3 is run at half (63) power forward
+	wait1Msec(ms);
 }
 
-void turn_left(int ms, int power) {
-		motor[rightDrive] = -power; // Motor on port2 is run at half (63) power forward
-		motor[leftDrive]  = power;	// Motor on port3 is run at half (63) power forward
-		wait1Msec(ms);
+void turn_left(int ms, int power) 
+{
+	motor[rightDrive] = -power; 	// Motor on port2 is run at half (63) power forward
+	motor[leftDrive]  = power;	// Motor on port3 is run at half (63) power forward
+	wait1Msec(ms);
 }
 
-void turn_right(int ms, int power) {
-		motor[rightDrive] = power; // Motor on port2 is run at half (63) power forward
-		motor[leftDrive]  = -power;	// Motor on port3 is run at half (63) power forward
-		wait1Msec(ms);
+void turn_right(int ms, int power) 
+{
+	motor[rightDrive] = power; // Motor on port2 is run at half (63) power forward
+	motor[leftDrive]  = -power;	// Motor on port3 is run at half (63) power forward
+	wait1Msec(ms);
 }
 
-void turn_left_angle(int angle) {
+void turn_left_angle(int angle) 
+{
 	nMotorEncoder[leftDrive] = 0;
 	nMotorEncoder[rightDrive] = 0;
 	//int amount = angle * angleConversion;
 	int amount = angle;
 	
-	while (nMotorEncoder[leftDrive] > -amount && nMotorEncoder[rightDrive] < amount) {
+	while (nMotorEncoder[leftDrive] > -amount && nMotorEncoder[rightDrive] < amount) 
+	{
 		turn_left(1, motorSpeed / 2);
-		
 		checkArm();
 	}
 	
@@ -209,15 +224,16 @@ void turn_left_angle(int angle) {
 	
 }
 
-void turn_right_angle(int angle) {
+void turn_right_angle(int angle) 
+{
 	nMotorEncoder[leftDrive] = 0;
 	nMotorEncoder[rightDrive] = 0;
 	//int amount = angle * angleConversion;
 	int amount = angle;
 	
-	while (nMotorEncoder[leftDrive] < amount && nMotorEncoder[rightDrive] > -amount) {
+	while (nMotorEncoder[leftDrive] < amount && nMotorEncoder[rightDrive] > -amount) 
+	{
 		turn_right(1, motorSpeed / 2);
-		
 		checkArm();
 	}
 	
@@ -227,10 +243,11 @@ void turn_right_angle(int angle) {
 	motors_off();
 }
 
-void turn_right(int ms){
-		motor[rightDrive] = motorSpeed; // Motor on port2 is run at half (63) power forward
-		motor[leftDrive]  = -motorSpeed;	// Motor on port3 is run at half (63) power forward
-		wait1Msec(ms);
+void turn_right(int ms)
+{
+	motor[rightDrive] = motorSpeed; 	// Motor on port2 is run at half (63) power forward
+	motor[leftDrive]  = -motorSpeed;	// Motor on port3 is run at half (63) power forward
+	wait1Msec(ms);
 }
 
 // -------------------------------------------------
@@ -252,7 +269,8 @@ void lookForward()
 	lookAtAngle((int)0);
 }
 
-int checkFrontDistance() {
+int checkFrontDistance() 
+{
 	
 }
 
@@ -264,7 +282,8 @@ int checkFrontDistance() {
 // LINE TRACKING
 // -------------------------------------------------
 
-void checkLines() {
+void checkLines() 
+{
 	checkState();
 
 	int lowest, highest;
@@ -293,82 +312,104 @@ void checkLines() {
 	if (lState.rightLineVal < lowest) lowest = lState.rightLineVal;
 	if (lState.rightLineVal > highest) highest = lState.rightLineVal;
 
-	if (highest - lowest > lightThreshold) {
+	if (highest - lowest > lightThreshold) 
+	{
 		// Determine which ones are dark.
 		lState.leftLineDark = false;
 		lState.middleLineDark = false;
 		lState.rightLineDark = false;
 
-		if (lState.leftLineVal < highest - lightThreshold) {
+		if (lState.leftLineVal < highest - lightThreshold) 
+		{
 			lState.leftLineDark = true;
 		}
 
-		if (lState.middleLineVal < highest - lightThreshold) {
+		if (lState.middleLineVal < highest - lightThreshold) 
+		{
 			lState.middleLineDark = true;
 		}
 
-		if (lState.rightLineVal < highest - lightThreshold) {
+		if (lState.rightLineVal < highest - lightThreshold) 
+		{
 			lState.rightLineDark = true;
 		}
 	}
 }
 
-void lineTracker() {
-	while (SensorValue(rearRightBumper) == 0 && SensorValue(rearLeftBumper) == 0) {
+void lineTracker() 
+{
+	while (SensorValue(rearRightBumper) == 0 && SensorValue(rearLeftBumper) == 0) 
+	{
 		checkLines();
 
 		// Is a line dark?
-		if (lState.leftLineDark || lState.rightLineDark || lState.middleLineDark) {
+		if (lState.leftLineDark || lState.rightLineDark || lState.middleLineDark) 
+		{
 			// Left line is dark by itself.
-			if (lState.leftLineDark && !lState.rightLineDark && !lState.middleLineDark) {
-				while (lState.leftLineDark) {
+			if (lState.leftLineDark && !lState.rightLineDark && !lState.middleLineDark) 
+			{
+				while (lState.leftLineDark) 
+				{
 					turn_right(10);
 					checkLines();
 				}
 			}
 
 			// Right line is dark by itself.
-			if (!lState.leftLineDark && lState.rightLineDark && !lState.middleLineDark) {
-				while (lState.rightLineDark) {
+			if (!lState.leftLineDark && lState.rightLineDark && !lState.middleLineDark) 
+			{
+				while (lState.rightLineDark) 
+				{
 					turn_left(10);
 					checkLines();
 				}
 			}
 
 			// Middle line is dark by itself.
-			if (!lState.leftLineDark && !lState.rightLineDark && lState.middleLineDark) {
-				if (lState.lastMarker == left) {
+			if (!lState.leftLineDark && !lState.rightLineDark && lState.middleLineDark) 
+			{
+				if (lState.lastMarker == left) 
+				{
 					// Turn right until left goes off again. Then, go forward and left slightly.
-					while (!lState.leftLineDark) {
+					while (!lState.leftLineDark) 
+					{
 						turn_right(10);
 						checkLines();
 					}
+					
 					move_forwards(20);
 					turn_left(20);
 				}
-				else {
+				else 
+				{
 					// Turn left until right goes off again. Then, go forward and right slightly.
-					while (!lState.rightLineDark) {
+					while (!lState.rightLineDark) 
+					{
 						turn_left(10);
 						checkLines();
 					}
+					
 					move_forwards(20);
 					turn_right(20);
 				}
 			}
 
 			// If any two or all three are dark
-			if ((lState.leftLineDark && lState.rightLineDark) || (lState.leftLineDark && lState.middleLineDark) || (lState.middleLineDark && lState.rightLineDark)) {
+			if ((lState.leftLineDark && lState.rightLineDark) || (lState.leftLineDark && lState.middleLineDark) || (lState.middleLineDark && lState.rightLineDark)) 
+			{
 				// Back up and turn away from the last marker.
-			  move_backwards(40);
-			  if (lState.lastMarker == left) {
-			  	// Turn right a bit.
-			    turn_right(40);
-			  }
-			  else {
-			  	turn_left(40);
-			  }
+			  	move_backwards(40);
+			  	
+			  	if (lState.lastMarker == left) 
+			  	{
+			  		// Turn right a bit.
+			    		turn_right(40);
+			  	}
+			else 
+			{
+				turn_left(40);
 			}
+			
 		}
 
 		move_forwards(10);
@@ -383,9 +424,12 @@ void lineTracker() {
 // Control Arm
 // -------------------------------------------------
 
-void checkArm() {
+void checkArm() 
+{
 	return;
-	if (SensorValue(armLimit)) {
+	
+	if (SensorValue(armLimit)) 
+	{
 		// Force motor up.
 		motor[armDrive] = maxPower;
 		wait10Msec(5);
