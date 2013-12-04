@@ -103,7 +103,7 @@ robot Me;
 int motorSpeed = 100;
 int minMotorSpeed = 40;
 int angle90 = 520;
-int leftConversion = -140;
+int leftConversion = -100;
 
 //speedThreshold thresholdLimits[10];
 
@@ -252,21 +252,7 @@ void turn_right(int ms)
 	wait1Msec(ms);
 }
 
-// The motor and wait values may need adjusted so we don't burn up the motor.
-void openClaw()
-{
-	motor[clawDrive] = 30;	// Open the claw.
-	wait1Msec(1);			      // Let the claw continue opening.
-	motor[clawDrive] = 0;	  // Stop the claw from opening any more. 
-}
 
-// The motor and wait values may need adjusted so we don't burn up the motor.
-void closeClaw()
-{
-	motor[clawDrive] = 30;  // Close the claw.
-	wait1MSec(1);			      // Let the claw continue closing.
-	motor[clawDrive] = 0;	  // Stop the claw from opening any more.
-}
 
 
 // -------------------------------------------------
@@ -459,7 +445,7 @@ void checkArm()
 		wait10Msec(5);
 		
 		// Set armDrive to something higher.
-		angle = 10;
+		angle = 1900;
 	}
 	int degrees = SensorValue(armAngle);
 	if (degrees < angle) {
@@ -721,7 +707,38 @@ void initOpen() {
 	currentX = Me.position.x;
 	currentY = Me.position.y;
 }
+// The motor and wait values may need adjusted so we don't burn up the motor.
+void openClaw()
+{
+	motor[clawDrive] = 100;	// Open the claw.
+	wait1Msec(370);			      // Let the claw continue opening.
+	motor[clawDrive] = 0;	  // Stop the claw from opening any more. 
+}
 
+// The motor and wait values may need adjusted so we don't burn up the motor.
+void closeClaw()
+{
+	motor[clawDrive] = -80;  // Close the claw.
+	wait1MSec(500);			      // Let the claw continue closing.
+  motor[clawDrive] = -20;  // Close the claw.
+}
+void pickUpCan()
+{
+	openClaw();
+	while(sensorValue[armLimit]<1)
+	{
+		motor[armDrive]=-10;
+	}
+	motor[armDrive]=0;
+	
+	closeClaw();
+
+	setArmLiteral(1800);
+	while(true)
+	{
+		checkArm();	
+	}
+}
 
 task main()
 {
@@ -816,6 +833,9 @@ task main()
 		}
 	}
 	
+	pickUpCan();
+	
+	
 	//turn_left_angle(90);
 	/*
 	
@@ -856,6 +876,5 @@ task main()
 		
 		
 	}*/
-	
 	
 }
