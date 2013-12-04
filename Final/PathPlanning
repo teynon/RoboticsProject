@@ -779,7 +779,9 @@ task main()
 		// Maintain the position of the arm (prevent falling)
 		checkArm();
 	  if (bestFirst_route()) {
-	  	
+			currentX = Me.position.x;
+			currentY = Me.position.y;
+		
 			// Follow path. 
 			//for (int x = 0; x < pathIndex; x++) {
 				if (grid[path[x].y][path[x].x]) {
