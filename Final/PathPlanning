@@ -758,7 +758,6 @@ task main()
 	
 	// Initialize our current map.
 	//while (true) {
-		checkMap();
 	//}
 	
 	// Put the arm in observer position.
@@ -773,6 +772,10 @@ task main()
 	int cellDirection = 1;
 	int x = 0;
 	while (Me.position.x != goalX || Me.position.y != goalY) {
+		checkMap();
+		currentX = Me.position.x;
+		currentY = Me.position.y;
+		
 		// Maintain the position of the arm (prevent falling)
 		checkArm();
 	  if (bestFirst_route()) {
@@ -780,8 +783,6 @@ task main()
 			// Follow path. 
 			//for (int x = 0; x < pathIndex; x++) {
 				if (grid[path[x].y][path[x].x]) {
-					currentX = Me.position.x;
-					currentY = Me.position.y;
 					if (path[x].x > currentX) {
 						cellDirection = 0;
 						Me.position.x = Me.position.x + 1;
@@ -818,7 +819,6 @@ task main()
 					move_forwards_dist(900);
 					motors_off();
 					armOff();
-					checkMap();
 				}
 				else {
 					// Redo the search and start over.
