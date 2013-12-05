@@ -133,6 +133,6 @@ task main()
 	// Set up sonar.
 	setupSonar();
 
-    // Travel down the hallway.
-    travelHallway();
+    	// Travel down the hallway.
+    	travelHallway();
 }
