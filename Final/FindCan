@@ -522,7 +522,7 @@ void initOpen() {
 void openClaw()
 {
 	motor[clawDrive] = 100;	// Open the claw.
-	wait1Msec(370);			      // Let the claw continue opening.
+	wait1Msec(450);			      // Let the claw continue opening.
 	motor[clawDrive] = 0;	  // Stop the claw from opening any more. 
 }
 
@@ -544,7 +544,10 @@ void pickUpCan()
 	
 	closeClaw();
 
-	setArmLiteral(1800);
+	motor[armDrive]=20;
+	wait10Msec(10);
+	
+	//setArmLiteral(1800);
 	
 	checkArm();	
 
@@ -553,13 +556,16 @@ void pickUpCan()
 void findCan()
 {
 	int t=0;
+	
 	while(t < 5)
 	{
 		//turn right 5 increments trying to find can (might need to be higher than 5)
 		if(SensorValue[sonarFront] <= 7 && SensorValue[sonarFront] >= 5)
 		{
-			//found the can
+			//found the edge of the can, continue moving slightly
+			wait10Msec(30);
 			motors_off();
+			pickUpCan();
 			t=5;
 			break;
 		}
@@ -567,15 +573,12 @@ void findCan()
 		{
 			motor[leftDrive]=30;
 			motor[rightDrive]=-30;
-			wait10msec(1);
+			wait10Msec(30);
 			t+=1;
 		}
 		
 	}
-	
 	motors_off();
-	wait10msec(2);
-	
 	t=0;
 	
 	while(t < 10)
@@ -583,20 +586,23 @@ void findCan()
 		//turn left 10 increments trying to find can	
 		if(SensorValue[sonarFront] <= 7 && SensorValue[sonarFront] >= 5)
 		{
-			//found the can
+			//found the edge of the can, continue moving slightly
+			wait10Msec(30);
 			motors_off();
-			t=10
+			
+			pickUpCan();
+			t=10;
 			break;
 		}
 		else
 		{
 			motor[leftDrive]=-30;
 			motor[rightDrive]=30;
-			wait10msec(1);			
+			wait10Msec(30);			
 			t+=1;
 		}
 		
-	}	
+	}		
 	motors_off();
 }
 
@@ -605,6 +611,6 @@ task main()
 
 	findCan();
 	
-	pickUpCan();
-	
+
+	motor[clawDrive]=0;
 }
