@@ -69,8 +69,8 @@ typedef struct {
 // ================================================
 // GLOBALS
 // ------------------------------------------------
-const int gridWidth = 8;
-const int gridHeight = 8;
+const int gridWidth = 10;
+const int gridHeight = 10;
 
 // The robot's starting position.
 int startX = 0;
@@ -81,8 +81,8 @@ int currentX = 0;
 int currentY = 0;
 
 // The goal's position.
-int goalX = 4;
-int goalY = 0;
+int goalX = 9;
+int goalY = 5;
 
 int distancePerSquare = 100;
 int openCells = gridWidth * gridHeight;
@@ -436,7 +436,7 @@ void armOff() {
 
 void checkArm() 
 {
-	//return;
+	return;
 	
 	if (SensorValue(armLimit)) 
 	{
@@ -746,8 +746,8 @@ task main()
 	
 
 	// Initialize Myself
-	Me.position.x = 0;
-	Me.position.y = 0;
+	Me.position.x = 5;
+	Me.position.y = 5;
 	Me.direction = 0;
 	
 	currentX = Me.position.x;
@@ -771,33 +771,34 @@ task main()
 	// Determine a route.
 	int cellDirection = 1;
 	int x = 0;
+	int cX = Me.position.x;
+	int cY = Me.position.y;
+	
 	while (Me.position.x != goalX || Me.position.y != goalY) {
 		checkMap();
-		currentX = Me.position.x;
-		currentY = Me.position.y;
 		
 		// Maintain the position of the arm (prevent falling)
 		checkArm();
+		cX = Me.position.x;
+		cY = Me.position.y;
 	  if (bestFirst_route()) {
-			currentX = Me.position.x;
-			currentY = Me.position.y;
 		
 			// Follow path. 
 			//for (int x = 0; x < pathIndex; x++) {
 				if (grid[path[x].y][path[x].x]) {
-					if (path[x].x > currentX) {
+					if (path[x].x > cX) {
 						cellDirection = 0;
 						Me.position.x = Me.position.x + 1;
 					}
-					else if (path[x].y > currentY) {
+					else if (path[x].y > cY) {
 						cellDirection = 1;
 						Me.position.y = Me.position.y + 1;
 					}
-					else if (path[x].x < currentX) {
+					else if (path[x].x < cX) {
 						cellDirection = 2;
 						Me.position.x = Me.position.x - 1;
 					}
-					else if (path[x].y < currentY) {
+					else if (path[x].y < cY) {
 						cellDirection = 3;
 						Me.position.y = Me.position.y - 1;
 					}
@@ -820,7 +821,7 @@ task main()
 					
 					move_forwards_dist(900);
 					motors_off();
-					armOff();
+					//armOff();
 				}
 				else {
 					// Redo the search and start over.
