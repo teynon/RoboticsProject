@@ -557,9 +557,9 @@ void findCan()
 {
 	int t=0;
 	
+	//turn right 5 increments trying to find can (might need to be higher than 5)
 	while(t < 5)
 	{
-		//turn right 5 increments trying to find can (might need to be higher than 5)
 		if(SensorValue[sonarFront] <= 7 && SensorValue[sonarFront] >= 5)
 		{
 			//found the edge of the can, continue moving slightly
@@ -581,9 +581,9 @@ void findCan()
 	motors_off();
 	t=0;
 	
+	//turn left 10 increments trying to find can	
 	while(t < 10)
-	{
-		//turn left 10 increments trying to find can	
+	{	
 		if(SensorValue[sonarFront] <= 7 && SensorValue[sonarFront] >= 5)
 		{
 			//found the edge of the can, continue moving slightly
@@ -611,6 +611,5 @@ task main()
 
 	findCan();
 	
-
 	motor[clawDrive]=0;
 }
