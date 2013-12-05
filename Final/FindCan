@@ -556,39 +556,40 @@ void pickUpCan()
 void findCan()
 {
 	int t=0;
+	bool found = false;
 	
 	//turn left 5 increments trying to find can (might need to be higher than 5)
-	while(t < 5)
+	while(t < 125)
 	{
-		if(SensorValue[sonarFront] <= 10)
+		if(SensorValue[sonarFront] <= 18)
 		{
 			//found the edge of the can, continue moving slightly
-			wait10Msec(20);
+			wait10Msec(5);
 			motors_off();
 			pickUpCan();
+			found = true;
 			t=5;
 			break;
 		}
 		else
 		{
-			//continue rotating right
-			motor[leftDrive]=40;
-			motor[rightDrive]=-40;
-			wait10Msec(40);
+			//continue rotating left
+			motor[leftDrive]=35;
+			motor[rightDrive]=-35;
+			wait10Msec(1);
 			t+=1;
 		}
-		
 	}
 	motors_off();
 	t=0;
 	
 	//turn right 10 increments trying to find can	
-	while(t < 10)
+	while(t < 250 || found == false)
 	{	
-		if(SensorValue[sonarFront] <= 10)
+		if(SensorValue[sonarFront] <= 18)
 		{
 			//found the edge of the can, continue moving slightly
-			wait10Msec(20);
+			wait10Msec(1);
 			motors_off();
 			
 			pickUpCan();
@@ -598,9 +599,9 @@ void findCan()
 		else
 		{
 			//continue rotating left
-			motor[leftDrive]=-40;
-			motor[rightDrive]=40;
-			wait10Msec(40);			
+			motor[leftDrive]=-35;
+			motor[rightDrive]=35;
+			wait10Msec(1);			
 			t+=1;
 		}
 		
