@@ -145,9 +145,9 @@ void travelHallway()
 		// If the left sonar value is greater than the right sonar value, we are closer to the right wall.
 		else if((SensorValue[sonarLeft] > SensorValue[sonarRight]))
 		{
-				// Set the left motor speed slightly higher. This should let the robot drift to the left.
-				leftMotorSpeed = -80;
-				rightMotorSpeed = -30;
+				// Set the right motor speed slightly higher. This should let the robot drift to the left.
+				leftMotorSpeed = -30;
+				rightMotorSpeed = -80;
 
 				// Drift left, back to the center of the hallway.
 				driftLeft(leftMotorSpeed, rightMotorSpeed);
@@ -155,9 +155,9 @@ void travelHallway()
 		// If the right sonar value is greater than the left sonar value, we are closer to the left wall.
 		else if(SensorValue[sonarRight] > SensorValue[sonarLeft])
 		{
-				// Set the right motor speed slightly higher. This should let the robot drift to the right.
-				leftMotorSpeed = -30;
-				rightMotorSpeed = -80;
+				// Set the left motor speed slightly higher. This should let the robot drift to the right.
+				leftMotorSpeed = -80;
+				rightMotorSpeed = -30;
 
 				// Drift right, back to the center of the hallway.
 				driftRight(leftMotorSpeed, rightMotorSpeed);
