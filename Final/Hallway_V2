@@ -26,6 +26,47 @@ void setupSonar()
 	distanceToRightWall = SensorValue[sonarRight];
 }
 
+void checkArm()
+{
+        if (SensorValue(armLimit))
+        {
+                // Force motor up.
+                motor[armDrive] = maxPower;
+                wait10Msec(5);
+
+                // Set armDrive to something higher.
+                angle = 1900;
+        }
+        
+        int degrees = SensorValue(armAngle);
+        
+        if (degrees < angle) 
+        {
+                // Move motor up.
+                if (degrees + minPowerThreshold < angle)
+                        motor[armDrive] = maxPower;
+                else 
+                	motor[armDrive] = minPower;
+        }
+        else if (degrees > angle) 
+        {
+                // Move motor down.
+                motor[armDrive] = -minPower;
+        }
+        else 
+        {
+                // Turn motor off
+                motor[armDrive] = 0;
+        }
+}
+
+void setArm(int degrees) 
+{
+        angle = degrees; //(degrees * conversion)(degrees - min) / conversion;
+        checkArm();
+}
+
+
 void driftLeft(int leftMotorSpeed, int rightMotorSpeed)
 {
 	// Drift while the robot is moving back to the center of the hallway, and moving left.
